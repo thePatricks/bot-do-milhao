@@ -16,6 +16,7 @@ class Controller:
 
     @property
     def channel_name(self):
+        # TODO: Generalizar channel_name com base no self.ctx
         return "flex do milhao"
 
     @property
