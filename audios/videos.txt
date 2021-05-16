@@ -13,3 +13,5 @@
 "numero 1, quem é o 1, levanta aeee" => https://youtu.be/PZsJgVqjBbQ?t=1641
 
 "numero 5, mas só daqui a pouco depois dos nossos comerciais" => https://youtu.be/8OXye_CChLY?t=501
+
+ex: youtube-dl https://youtu.be/8OXye_CChLY -x --postprocessor-args "-ss 0:8:16 -to 0:8:23"
