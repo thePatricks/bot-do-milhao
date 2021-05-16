@@ -14,7 +14,7 @@ bot = commands.Bot(command_prefix="!")
 @bot.command("crime")
 async def crime(ctx, *args):
     c = Controller(ctx, *args)
-    await c.play()
+    await c.run()
 
 
 print("Bot is running!")

@@ -1,7 +1,6 @@
 import discord
 import quantumrand
 import asyncio
-import time
 
 from .constants import Lanes
 
@@ -12,7 +11,6 @@ class Controller:
     def __init__(self, ctx, *arg):
         self.ctx = ctx
         self.arg = arg
-        self.sem = asyncio.Semaphore()
 
     @property
     def channel_name(self):
@@ -48,42 +46,51 @@ class Controller:
         return self.__random_sort(n - 1, current=current, on_hold=on_hold)
 
     def __get_audio_list(self):
-        start_time = time.time()
-
-        # TODO: Otimizar essa chamada para que ela ocorra
-        # enquanto a musica de intro está tocando
         picks = self.__random_sort()
 
-        current = [f"{BASE_AUDIO_PATH}/intro.mp3"]
+        current = []
 
         for lane in self.lanes:
             current.append(f"{BASE_AUDIO_PATH}/{lane.value.lower()}.mp3")
-            current.append(f"{BASE_AUDIO_PATH}/{picks.index(lane)+1}.m4a")
+            current.append(f"{BASE_AUDIO_PATH}/{picks.index(lane)+1}.mp3")
 
-        print("--- %s seconds ---" % (time.time() - start_time))
         return current
 
-    async def connect_voice_channel(self):
-        voice_channel = discord.utils.get(
-            self.ctx.guild.channels, name=self.channel_name
-        )
-        vc = await voice_channel.connect()
-        return vc
+    async def __play_intro(self, vc):
+        event = asyncio.Event()
+        audio = discord.FFmpegPCMAudio(f"{BASE_AUDIO_PATH}/intro.mp3")
+        vc.play(audio, after=lambda _: event.set())
+        vc.source = discord.PCMVolumeTransformer(vc.source, volume=0.05)
+        await event.wait()
 
-    def after_play(self, error):
-        print(f"error {error}")
-        self.sem.release()
+    async def __play(self, vc, audio_list):
+        sem = asyncio.Semaphore()
 
-    async def play(self):
-        vc = await self.connect_voice_channel()
+        def after_play(error):
+            if error:
+                print(f"error playing audios {error}")
+            sem.release()
 
-        for audio_source in self.__get_audio_list():
-            await self.sem.acquire()
+        for audio_source in audio_list:
+            await sem.acquire()
             audio = discord.FFmpegPCMAudio(audio_source)
-            vc.play(audio, after=self.after_play)
+            vc.play(audio, after=after_play)
             vc.source = discord.PCMVolumeTransformer(vc.source, volume=0.05)
 
         while vc.is_playing():
             pass
 
-        await vc.disconnect()
+    async def run(self):
+        try:
+            voice_channel = discord.utils.get(
+                self.ctx.guild.channels, name=self.channel_name
+            )
+            vc = await voice_channel.connect()
+
+            [audio_list, _] = await asyncio.gather(
+                asyncio.to_thread(self.__get_audio_list), self.__play_intro(vc)
+            )
+
+            await self.__play(vc, audio_list)
+        finally:
+            await vc.disconnect()
