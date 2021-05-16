@@ -12,7 +12,7 @@ bot = commands.Bot(command_prefix="!")
 
 
 @bot.command("crime")
-async def test(ctx, *args):
+async def crime(ctx, *args):
     c = Controller(ctx, *args)
     await c.play()
 
