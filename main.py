@@ -1,34 +1,21 @@
 import os
-from io import BytesIO
-from gtts import gTTS
-from tempfile import NamedTemporaryFile
-import pyglet
+from discord.ext import commands
+from dotenv import load_dotenv
+
+from src.controller import Controller
+
+load_dotenv()
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+bot = commands.Bot(command_prefix="!")
 
 
-pyglet.options["audio"] = ("pulse",)
-
-# To play audio text-to-speech during execution
-
-
-def speak():
-    tts = gTTS('so os troll online',
-               lang='pt', tld='com.br')
-
-    filename = 'temp.mp3'
-
-    tts.save(filename)
-
-    try:
-
-        sound = pyglet.media.load('./temp.mp3', streaming=False)
-
-        player = sound.play()
-        while player.playing:
-            pyglet.app.platform_event_loop.dispatch_posted_events()
-            pyglet.clock.tick()
-    finally:
-        pass
-        # os.remove(filename)
+@bot.command("crime")
+async def test(ctx, *args):
+    c = Controller(ctx, *args)
+    await c.play()
 
 
-speak()
+print("Bot is running!")
+bot.run(TOKEN)
